@@ -1,4 +1,3 @@
-```markdown
 # Discord Anthrochat Bot
 
 このプロジェクトは、AnthropicのAPIを使用してユーザーの入力に基づいた応答を生成するDiscordボットです。このボットはPythonで構築されており、`discord.py`と`anthropic`ライブラリを利用しています。
@@ -66,9 +65,7 @@ contributions大歓迎です！問題を見つけたり、改善の提案があ�
 ## ライセンス
 
 このプロジェクトは[MITライセンス](LICENSE)の下で提供されています。
-```
 
-```markdown
 # Discord Anthrochat Bot
 
 This is a Discord bot that uses the Anthropic API to generate responses based on user input. The bot is built using Python and utilizes the `discord.py` and `anthropic` libraries.
@@ -136,4 +133,3 @@ Contributions are welcome! If you find any issues or have suggestions for improv
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-```
