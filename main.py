@@ -11,6 +11,9 @@ load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 
+ASK_COMMAND_EN = '$ask'
+ASK_COMMAND_JA = '$質問'
+
 
 # Discord Clientの設定
 intents = discord.Intents.default()
@@ -39,6 +42,8 @@ async def on_message(message):
     else:
         return  # コマンドが一致しない場合は何もしない
 
+
+async def process_command(message, command, user_input):
     try:
         response = anthropic_client.messages.create(
             model="claude-3-opus-20240229",
@@ -48,22 +53,38 @@ async def on_message(message):
             messages=[{"role": "user", "content": user_input}]
         )
 
-        if hasattr(response, 'content'):
-            text_blocks = response.content
-            cleaned_texts = [block.text.replace('\\n', '\n').replace('\\u3000', '　').replace('\\t', '\t')
-                                for block in text_blocks if hasattr(block, 'text')]
-
-            for cleaned_text in cleaned_texts:
-                await message.channel.send(cleaned_text)
-        
-        else:
-                await message.channel.send("申し訳ありません。応答の処理中にエラーが発生しました。")
+        await send_response(message, response)
 
     except anthropic.exceptions.APIError:
         await message.channel.send("申し訳ありません。APIの呼び出し中にエラーが発生しました。")
     except Exception as e:
         await message.channel.send("申し訳ありません。予期しないエラーが発生しました。")
         print(f"An error occurred: {e}")
+
+async def send_response(message, response):
+    if hasattr(response, 'content'):
+        text_blocks = response.content
+        cleaned_texts = [block.text.replace('\\n', '\n').replace('\\u3000', '　').replace('\\t', '\t')
+                            for block in text_blocks if hasattr(block, 'text')]
+
+        for cleaned_text in cleaned_texts:
+            await message.channel.send(cleaned_text)
+    else:
+        await message.channel.send("申し訳ありません。応答の処理中にエラーが発生しました。")
+
+@discord_client.event
+async def on_message(message):
+    if message.author == discord_client.user:
+        return
+
+    if message.content.startswith(ASK_COMMAND_EN):
+        command_length = len(ASK_COMMAND_EN + ' ')
+        user_input = message.content[command_length:]
+        await process_command(message, ASK_COMMAND_EN, user_input)
+    elif message.content.startswith(ASK_COMMAND_JA):
+        command_length = len(ASK_COMMAND_JA + ' ')
+        user_input = message.content[command_length:]
+        await process_command(message, ASK_COMMAND_JA, user_input)
 
 # Discord Botを実行
 discord_client.run(DISCORD_BOT_TOKEN)
