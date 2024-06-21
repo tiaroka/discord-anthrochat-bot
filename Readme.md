@@ -17,7 +17,7 @@
 
 1. リポジトリをクローンします：
    ```
-   git clone https://github.com/your-username/discord-anthrochat-bot.git
+   git clone https://github.com/tiaroka/discord-anthrochat-bot.git
    ```
 
 2. 必要な依存関係をインストールします：
