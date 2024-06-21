@@ -27,22 +27,6 @@ anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 async def on_ready():
     print(f'Logged in as {discord_client.user}')
 
-@discord_client.event
-async def on_message(message):
-    if message.author == discord_client.user:
-        return
-
-    # コマンドに応じたユーザー入力の取得
-    if message.content.startswith('$ask'):
-        command_length = len('$ask ')
-        user_input = message.content[command_length:]
-    elif message.content.startswith('$質問'):
-        command_length = len('$質問 ')
-        user_input = message.content[command_length:]
-    else:
-        return  # コマンドが一致しない場合は何もしない
-
-
 async def process_command(message, command, user_input):
     try:
         response = anthropic_client.messages.create(
