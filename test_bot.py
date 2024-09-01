@@ -23,9 +23,15 @@ class TestDiscordBot(unittest.IsolatedAsyncioTestCase):
     async def test_bot_startup(self, mock_connect, mock_login):
         # ボットの起動をテスト
         try:
-            await asyncio.wait_for(self.bot.start(self.test_token), timeout=5.0)
+            connection_task = asyncio.create_task(self.bot.start(self.test_token))
+            await asyncio.wait_for(self.bot.wait_until_ready(), timeout=10.0)
+            self.assertTrue(self.bot.is_ready())
         except asyncio.TimeoutError:
             self.fail("Bot startup timed out")
+        finally:
+            if not connection_task.done():
+                connection_task.cancel()
+            await self.bot.close()
         
         mock_login.assert_called_once()
         mock_connect.assert_called_once()
