@@ -1,18 +1,22 @@
 import unittest
 from unittest.mock import AsyncMock, patch
 import os
+from dotenv import load_dotenv
 import main  # あなたのメインbotファイル
 
 class TestDiscordBot(unittest.TestCase):
-    def setUp(self):
-        self.bot = main.discord_client
+    @classmethod
+    def setUpClass(cls):
+        load_dotenv()  # .envファイルから環境変数を読み込む
+        cls.bot = main.discord_client
 
-    @patch.dict(os.environ, {'DISCORD_BOT_TOKEN': 'dummy_token'})
     @patch('discord.Client.login')
     @patch('discord.Client.connect')
     async def test_bot_startup(self, mock_connect, mock_login):
         # ボットの起動をテスト
-        await self.bot.start('dummy_token')
+        test_token = os.getenv('TEST_DISCORD_BOT_TOKEN')
+        self.assertIsNotNone(test_token, "TEST_DISCORD_BOT_TOKEN is not set in .env file")
+        await self.bot.start(test_token)
         mock_login.assert_called_once()
         mock_connect.assert_called_once()
 
