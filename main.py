@@ -1,6 +1,7 @@
 import anthropic
 import discord
 import os
+import asyncio
 from dotenv import load_dotenv
 
 
@@ -36,14 +37,12 @@ async def process_command(message, command, user_input):
             system="あなたは古代ギリシャから現代日本に転生したフレッシュな発想を持つ吟遊詩人です",
             messages=[{"role": "user", "content": user_input}]
         )
-
-        await send_response(message, response)
-
+        return response
     except anthropic.exceptions.APIError:
-        await message.channel.send("申し訳ありません。APIの呼び出し中にエラーが発生しました。")
+        return "申し訳ありません。APIの呼び出し中にエラーが発生しました。"
     except Exception as e:
-        await message.channel.send("申し訳ありません。予期しないエラーが発生しました。")
         print(f"An error occurred: {e}")
+        return "申し訳ありません。予期しないエラーが発生しました。"
 
 async def send_response(message, response):
     if hasattr(response, 'content'):
@@ -61,14 +60,30 @@ async def on_message(message):
     if message.author == discord_client.user:
         return
 
-    if message.content.startswith(ASK_COMMAND_EN):
-        command_length = len(ASK_COMMAND_EN + ' ')
+    if message.content.startswith((ASK_COMMAND_EN, ASK_COMMAND_JA)):
+        command = ASK_COMMAND_EN if message.content.startswith(ASK_COMMAND_EN) else ASK_COMMAND_JA
+        command_length = len(command + ' ')
         user_input = message.content[command_length:]
-        await process_command(message, ASK_COMMAND_EN, user_input)
-    elif message.content.startswith(ASK_COMMAND_JA):
-        command_length = len(ASK_COMMAND_JA + ' ')
-        user_input = message.content[command_length:]
-        await process_command(message, ASK_COMMAND_JA, user_input)
+        response = await process_command(message, command, user_input)
+        await send_response(message, response)
+
+async def process_messages():
+    while True:
+        messages = await discord_client.wait_for('message', check=lambda m: m.content.startswith((ASK_COMMAND_EN, ASK_COMMAND_JA)))
+        tasks = []
+        for message in [messages]:  # Wrap messages in a list to handle single message case
+            command = ASK_COMMAND_EN if message.content.startswith(ASK_COMMAND_EN) else ASK_COMMAND_JA
+            command_length = len(command + ' ')
+            user_input = message.content[command_length:]
+            tasks.append(process_command(message, command, user_input))
+        responses = await asyncio.gather(*tasks)
+        for message, response in zip([messages], responses):  # Wrap messages in a list to handle single message case
+            await send_response(message, response)
+
+@discord_client.event
+async def on_ready():
+    print(f'Logged in as {discord_client.user}')
+    discord_client.loop.create_task(process_messages())
 
 # Discord Botを実行
 discord_client.run(DISCORD_BOT_TOKEN)
