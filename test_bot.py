@@ -1,11 +1,13 @@
 import unittest
 from unittest.mock import AsyncMock, patch
+import os
 import main  # あなたのメインbotファイル
 
 class TestDiscordBot(unittest.TestCase):
     def setUp(self):
-        self.bot = main.bot
+        self.bot = main.discord_client
 
+    @patch.dict(os.environ, {'DISCORD_BOT_TOKEN': 'dummy_token'})
     @patch('discord.Client.login')
     @patch('discord.Client.connect')
     async def test_bot_startup(self, mock_connect, mock_login):
