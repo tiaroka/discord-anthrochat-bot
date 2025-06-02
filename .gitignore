@@ -1,1 +1,134 @@
+# Environment files
 .env
+.env.*
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.virtualenv/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Testing
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+cover/
+htmlcov/
+*.cover
+*.py,cover
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.coveragerc
+.dmypy.json
+dmypy.json
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets and credentials
+*.pem
+*.key
+*.cert
+*.crt
+credentials.json
+secrets.json
+config.json
+!config.example.json
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Bot specific
+bot.log
+discord.log
+error.log
+data/
+cache/
+downloads/
+sessions/

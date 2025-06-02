@@ -1,9 +1,10 @@
-import anthropic
 import discord
 import os
-import asyncio
+import time
+from collections import deque
 from dotenv import load_dotenv
-
+import asyncio
+import anthropic
 
 # .envファイルから環境変数を読み込む
 load_dotenv()
@@ -15,6 +16,8 @@ ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 ASK_COMMAND_EN = '$ask'
 ASK_COMMAND_JA = '$質問'
 
+# 同時実行数の制限
+MAX_CONCURRENT_REQUESTS = 5
 
 # Discord Clientの設定
 intents = discord.Intents.default()
@@ -24,66 +27,56 @@ discord_client = discord.Client(intents=intents)
 # Anthropic Clientの設定
 anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
+# セマフォの設定
+request_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+# メッセージ履歴を保持するリスト（最大10件）
+message_history = deque(maxlen=10)
+
+# メッセージの有効期限（秒）
+MESSAGE_EXPIRATION_TIME = 3600  # 1時間
+
 @discord_client.event
 async def on_ready():
     print(f'Logged in as {discord_client.user}')
-
-async def process_command(message, command, user_input):
-    try:
-        response = anthropic_client.messages.create(
-            model="claude-3-opus-20240229",
-            max_tokens=1000,
-            temperature=0.5,
-            system="あなたは古代ギリシャから現代日本に転生したフレッシュな発想を持つ吟遊詩人です",
-            messages=[{"role": "user", "content": user_input}]
-        )
-        return response
-    except anthropic.exceptions.APIError:
-        return "申し訳ありません。APIの呼び出し中にエラーが発生しました。"
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return "申し訳ありません。予期しないエラーが発生しました。"
-
-async def send_response(message, response):
-    if hasattr(response, 'content'):
-        text_blocks = response.content
-        cleaned_texts = [block.text.replace('\\n', '\n').replace('\\u3000', '　').replace('\\t', '\t')
-                            for block in text_blocks if hasattr(block, 'text')]
-
-        for cleaned_text in cleaned_texts:
-            await message.channel.send(cleaned_text)
-    else:
-        await message.channel.send("申し訳ありません。応答の処理中にエラーが発生しました。")
 
 @discord_client.event
 async def on_message(message):
     if message.author == discord_client.user:
         return
 
-    if message.content.startswith((ASK_COMMAND_EN, ASK_COMMAND_JA)):
-        command = ASK_COMMAND_EN if message.content.startswith(ASK_COMMAND_EN) else ASK_COMMAND_JA
-        command_length = len(command + ' ')
-        user_input = message.content[command_length:]
-        response = await process_command(message, command, user_input)
-        await send_response(message, response)
-
-async def process_messages():
-    while True:
-        messages = await discord_client.wait_for('message', check=lambda m: m.content.startswith((ASK_COMMAND_EN, ASK_COMMAND_JA)))
-        tasks = []
-        for message in [messages]:  # Wrap messages in a list to handle single message case
-            command = ASK_COMMAND_EN if message.content.startswith(ASK_COMMAND_EN) else ASK_COMMAND_JA
-            command_length = len(command + ' ')
-            user_input = message.content[command_length:]
-            tasks.append(process_command(message, command, user_input))
-        responses = await asyncio.gather(*tasks)
-        for message, response in zip([messages], responses):  # Wrap messages in a list to handle single message case
-            await send_response(message, response)
-
-@discord_client.event
-async def on_ready():
-    print(f'Logged in as {discord_client.user}')
-    discord_client.loop.create_task(process_messages())
+    if message.content.startswith(ASK_COMMAND_EN) or message.content.startswith(ASK_COMMAND_JA):
+        user_input = message.content[len(ASK_COMMAND_EN):].strip() if message.content.startswith(ASK_COMMAND_EN) else message.content[len(ASK_COMMAND_JA):].strip()
+        current_time = time.time()
+        
+        # メッセージ履歴にユーザーのメッセージを追加
+        message_history.append({"role": "user", "content": f"{message.author.name}: {user_input}", "timestamp": current_time})
+        
+        # 古いメッセージを削除
+        while message_history and current_time - message_history[0]["timestamp"] > MESSAGE_EXPIRATION_TIME:
+            message_history.popleft()
+        
+        async with request_semaphore:
+            try:
+                # Claude APIに問い合わせ
+                response = anthropic_client.messages.create(
+                    model="claude-opus-4-20250514",
+                    max_tokens=1000,
+                    temperature=0.5,
+                    system="あなたは古代ギリシャから現代日本に転生したフレッシュな発想を持つ吟遊詩人です",
+                    messages=[{"role": msg["role"], "content": msg["content"]} for msg in message_history]
+                )
+                
+                # レスポンスからテキストを抽出
+                response_text = response.content[0].text
+                
+                # メッセージ履歴にClaudeの応答を追加
+                message_history.append({"role": "assistant", "content": response_text, "timestamp": current_time})
+                
+                # Discordに応答を送信
+                await message.channel.send(response_text)
+            except Exception as e:
+                await message.channel.send(f"Error: {e}")
 
 # Discord Botを実行
 discord_client.run(DISCORD_BOT_TOKEN)
